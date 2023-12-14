@@ -3,36 +3,18 @@ import random
 from copy import deepcopy
 from Board import Board
 from Colour import Colour
-
-# # Import Board class: from src
-
-# # For debugging purposes
-# import time
-
-
 class MCTS_node:
     
     def __init__(self, state, board_size=11, parent=None, move=None, player=None):
         # Variables for UCB selection process
         self.wins = 0           # number of wins from this node
         self.visits = 0         # number of times this node has been visited
-
-
-
         self.state = state      # Board state
         self.parent = parent    # A reference to the parent node
         self.move = move        # The move that led to this node
         self.player = player    # Player whos move is next 
-
-        # Initialise the Board and the board state
         self.board_size = board_size
-        # self.board = [[0]*self.board_size for i in range(self.board_size)]
-        # self.board = state
-
-
-        self.children = []                              # List of children from this node
-        # self.untried_moves = self.get_legal_moves()     # A list of moves not yet explored from this node
-
+        self.children = []      # List of children from this node
         # Use a dictionary for a sparse matrix representation of the board
         self.board = { (i, j): state[i][j] for i in range(board_size) for j in range(board_size) if state[i][j] != 0 }
 
@@ -68,16 +50,6 @@ class MCTS_node:
     def is_fully_expanded(self):
         return len(self.untried_moves) == 0
 
-    # def get_legal_moves(self):
-    #     legal_moves = []
-
-    #     for i in range(self.board_size):
-    #         for j in range(self.board_size):
-    #             if self.state[i][j] == 0:  # 0 indicates an empty spot
-    #                 legal_moves.append((i, j))
-
-    #     return legal_moves
-    # Select a child with the highes UCT value.
     def select_child(self):
         best_score = float("-inf")
         best_child = None
@@ -117,7 +89,6 @@ class MCTS_node:
         new_state = self.make_move_on_copy(move, deepcopy(self.state), self.player)        
         next_player = "B" if self.player == "R" else "R"
         child_node = MCTS_node(state=new_state, parent=self, move=move, player=next_player)
-        # child_node.update_legal_moves_after_move(move)
         self.children.append(child_node)
         return child_node
 
@@ -126,38 +97,6 @@ class MCTS_node:
         char_map = {0: '0', 'R': 'R', 'B': 'B'}  # Mapping of state to character
         return ','.join(''.join(char_map[item] for item in row) for row in current_state)
     
-    def simulate(self):
-        """
-        Simulate a random play-out from this node's state.
-        Returns: the result of the simulation (win/loss).
-        """
-        current_state = self.state
-        current_player = self.player
-        board_instance = Board.from_string(self.state_to_string(current_state), bnf=True)
-
-        while not board_instance.has_ended():
-            possible_moves = []
-
-            # GET LEGAL MOVES FUNCTIN
-            for i in range(self.board_size):
-                for j in range(self.board_size):
-                    if current_state[i][j] == 0:  
-                        possible_moves.append((i, j))
-
-            if not possible_moves:                          
-                break
-
-            move = random.choice(possible_moves)
-            current_state = self.make_move_on_copy(move, current_state, current_player)
-            if current_player == "B":
-                current_player = "R"
-            else:
-                current_player = "B"
-            board_string = self.state_to_string(current_state)
-            board_instance = Board.from_string(board_string, bnf=True)
-        #print(board_instance.print_board(bnf=False))
-        #print(board_instance.get_winner())
-        return Colour.get_char(board_instance.get_winner())  # Should return win/loss
 
     def simulate2(self):
         """
