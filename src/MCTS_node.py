@@ -54,18 +54,22 @@ class MCTS_node:
     def select_child(self):
         best_score = float("-inf")
         best_child = None
-        c = math.sqrt(2)
+        # c = math.sqrt(3)
+        c = 4
+
+
+
         for child in self.children:
-            ucb_score = (child.wins / child.visits) + c * math.sqrt(math.log(self.visits) / child.visits)
-            rave_score = 0
-            if child.move in self.rave_visits:
-                rave_score = self.rave_wins[child.move] / self.rave_visits[child.move]
-            beta = self.rave_visits.get(child.move, 0) / (self.visits + self.rave_visits.get(child.move, 0) + 1e-5)
+            ucb_score = (child.wins / child.visits) + c * math.sqrt(math.log(self.visits) / child.visits) if child.visits > 0 else float("inf")
+            rave_score = self.rave_wins.get(child.move, 0) / self.rave_visits.get(child.move, 1) 
+            beta = math.sqrt(self.rave_visits.get(child.move, 0) / (3 * self.visits + self.rave_visits.get(child.move, 0)))
             combined_score = beta * rave_score + (1 - beta) * ucb_score
+            flag+=1
             if combined_score > best_score:
                 best_score = combined_score
                 best_child = child
         return best_child
+
 
     def make_move_on_copy(self, move, state, player):
         new_state = state
@@ -80,10 +84,8 @@ class MCTS_node:
         pass
 
     def expand(self):
-
         """
-            Function is used to generate new child nodes from the current node.
-            Each child node represents a possible future state of the game resulting from a different move.
+            Generate new child nodes from the current node, by performing a move. 
         """
         if not self.untried_moves:
             return self
@@ -141,6 +143,3 @@ class MCTS_node:
                     current_node.rave_wins[move] += 1
             current_node = current_node.parent
 
-
-
-        # Update RAVE statistics
