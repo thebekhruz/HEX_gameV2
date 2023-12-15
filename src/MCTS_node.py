@@ -74,14 +74,11 @@ class MCTS_node:
         self._cached_end_state = None
         return new_state
          
-    def change_colour(self, player):
-        pass
 
     def expand(self):
 
         """
-            Function is used to generate new child nodes from the current node.
-            Each child node represents a possible future state of the game resulting from a different move.
+            Generate new child nodes from the current node, by performing a move. 
         """
 
         if not self.untried_moves:
@@ -107,11 +104,11 @@ class MCTS_node:
         current_state = deepcopy(self.state)
         current_player = deepcopy(self.player)
         board_instance = Board.from_string(self.state_to_string(current_state), bnf=True)
-        moves = []
-        for i in range(self.board_size):
-            for j in range(self.board_size):
-                if current_state[i][j] == 0:  # 0 indicates an empty spot
-                    moves.append((i,j))
+        moves = [(i, j) for i in range(self.board_size) for j in range(self.board_size) if current_state[i][j] == 0]
+        # for i in range(self.board_size):
+        #     for j in range(self.board_size):
+        #         if current_state[i][j] == 0:  # 0 indicates an empty spot
+        #             moves.append((i,j))
         random.shuffle(moves)
 
         for move in moves:
@@ -120,8 +117,7 @@ class MCTS_node:
 
         board_string = self.state_to_string(current_state)
         board_instance = Board.from_string(board_string, bnf=True)
-        #print(board_instance.print_board(bnf=False))
-        board_instance.has_ended()
+        # board_instance.has_ended()
         return Colour.get_char(board_instance.get_winner())  # Should return win/loss
 
     def backpropagate(self, result, rootNode):
