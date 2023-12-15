@@ -64,7 +64,7 @@ class Communicator:
         self.board_size = int(message[1])
         self.player = message[2]
         self.board = [[0] * self.board_size for _ in range(self.board_size)]
-        self.root = MCTS_node(state=self.create_game_state(), player=self.player)
+        self.root = MCTS_node(state=self.create_game_state(), board_size=self.board_size, player=self.player)
 
         if self.player == "R":
             self.make_move()
@@ -85,10 +85,11 @@ class Communicator:
     
 
     def make_move(self):
-        root_state = self.create_game_state()
-        root_node = MCTS_node(state=root_state, player=self.player)
+        # root_state = self.create_game_state()
+        # root_node = MCTS_node(state=root_state, player=self.player)
+        root_node = self.root
         mcts = MCTS_agent(root_node)
-        best_move = mcts.get_best_move()
+        best_move = mcts.get_best_move(simulations_number=1000)
 
         self.s.sendall(bytes(f"{best_move[0]},{best_move[1]}\n", "utf-8"))
         self.board[best_move[0]][best_move[1]] = self.player

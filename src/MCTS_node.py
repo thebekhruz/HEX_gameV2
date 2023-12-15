@@ -99,20 +99,12 @@ class MCTS_node:
 
     def expand(self):
         # Generate new child nodes from the current node, by performing a move. 
-
-
         if not self.untried_moves:
             return self
-        move = self.untried_moves.pop()                 # Remove a move from untried moves
-        new_state = self.make_move_on_copy(move, deepcopy(self.state), self.player)        # Apply the move to get the new state
-
-        # Switch player for the next turn in Hex
+        move = self.untried_moves.pop()
+        new_state = self.make_move_on_copy(move, deepcopy(self.state), self.player)
         next_player = "B" if self.player == "R" else "R"
-
-        # Create a new MCTS node for the child with the new state and the next player
         child_node = MCTS_node(state=new_state, parent=self, move=move, player=next_player)
-
-        # Add the new child node to the children of the current node
         self.children.append(child_node)
         return child_node
 
