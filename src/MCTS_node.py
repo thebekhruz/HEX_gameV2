@@ -55,7 +55,7 @@ class MCTS_node:
         best_score = float("-inf")
         best_child = None
         # c = math.sqrt(3)
-        c = 4
+        c = 0.1
 
 
 
@@ -79,9 +79,6 @@ class MCTS_node:
         self.update_legal_moves_after_move(move)
         self._cached_end_state = None
         return new_state
-         
-    def change_colour(self, player):
-        pass
 
     def expand(self):
         """
@@ -95,7 +92,6 @@ class MCTS_node:
         child_node = MCTS_node(state=new_state, parent=self, move=move, player=next_player)
         self.children.append(child_node)
         return child_node
-
 
     def state_to_string(self, current_state):
         char_map = {0: '0', 'R': 'R', 'B': 'B'}  # Mapping of state to character
