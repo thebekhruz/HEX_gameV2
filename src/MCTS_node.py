@@ -20,12 +20,11 @@ class MCTS_node:
 
         # Initialise the Board and the board state
         self.board_size = board_size
-        # self.board = [[0]*self.board_size for i in range(self.board_size)]
-        self.board = state
-
 
         self.children = []                              # List of children from this node
-        self.untried_moves = self.get_legal_moves()     # A list of moves not yet explored from this node
+        # self.untried_moves = self.get_legal_moves()     # A list of moves not yet explored from this node
+        self.untried_moves = set((i, j) for i in range(self.board_size) for j in range(self.board_size) if self.state[i][j] == 0)
+
         
 
 
@@ -43,14 +42,7 @@ class MCTS_node:
         return len(self.untried_moves) == 0
 
     def get_legal_moves(self):
-        legal_moves = []
-
-        for i in range(self.board_size):
-            for j in range(self.board_size):
-                if self.state[i][j] == 0:  # 0 indicates an empty spot
-                    legal_moves.append((i, j))
-
-        return legal_moves
+        return list(self.untried_moves)
         
     def select_child(self):
         """
@@ -71,7 +63,8 @@ class MCTS_node:
     def make_move_on_copy(self, move, state, player):
         i, j = move         # Unpack the move coordinates
         new_state = state
-        new_state[i][j] = player       
+        new_state[i][j] = player   
+        self.untried_moves.discard(move)
         return new_state
 
     def expand(self):
