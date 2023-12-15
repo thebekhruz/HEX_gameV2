@@ -18,13 +18,13 @@ class MCTS_node:
                                 # Use a dictionary for a sparse matrix representation of the board
         self.board = { (i, j): state[i][j] for i in range(board_size) for j in range(board_size) if state[i][j] != 0 }
                                 # Maintain a set of legal moves
-        self.untried_moves = set((i, j) for i in range(self.board_size) for j in range(self.board_size) if state[i][j] == 0)
+        self.untried_moves = {(i, j): True for i in range(board_size) for j in range(board_size) if state[i][j] == 0}
                                 # This will store 'R', 'B', or None
         self._cached_end_state = None  
 
 
     def update_legal_moves_after_move(self, move):
-        self.untried_moves.discard(move)
+        self.untried_moves[move] = False
 
 
 
@@ -76,17 +76,13 @@ class MCTS_node:
          
 
     def expand(self):
-
-        """
-            Generate new child nodes from the current node, by performing a move. 
-        """
-
-        if not self.untried_moves:
+        if all(not is_untried for is_untried in self.untried_moves.values()):
             return self
-        move = self.untried_moves.pop()                 
-        new_state = self.make_move_on_copy(move, deepcopy(self.state), self.player)        
+
+        untried_move = next(move for move, is_untried in self.untried_moves.items() if is_untried)
+        new_state = self.make_move_on_copy(untried_move, deepcopy(self.state), self.player)        
         next_player = "B" if self.player == "R" else "R"
-        child_node = MCTS_node(state=new_state, parent=self, move=move, player=next_player)
+        child_node = MCTS_node(state=new_state, parent=self, move=untried_move, player=next_player)
         self.children.append(child_node)
         return child_node
 
@@ -97,28 +93,18 @@ class MCTS_node:
     
 
     def simulate2(self):
-        """
-        Simulate a random play-out from this node's state.
-        Returns: the result of the simulation (win/loss).
-        """
         current_state = deepcopy(self.state)
-        current_player = deepcopy(self.player)
-        board_instance = Board.from_string(self.state_to_string(current_state), bnf=True)
-        moves = [(i, j) for i in range(self.board_size) for j in range(self.board_size) if current_state[i][j] == 0]
-        # for i in range(self.board_size):
-        #     for j in range(self.board_size):
-        #         if current_state[i][j] == 0:  # 0 indicates an empty spot
-        #             moves.append((i,j))
-        random.shuffle(moves)
+        current_player = self.player
+        untried_moves = [move for move, is_untried in self.untried_moves.items() if is_untried]
+        random.shuffle(untried_moves)
 
-        for move in moves:
+        for move in untried_moves:
             current_state[move[0]][move[1]] = current_player 
             current_player = "R" if current_player == "B" else "B"
 
         board_string = self.state_to_string(current_state)
         board_instance = Board.from_string(board_string, bnf=True)
-        # board_instance.has_ended()
-        return Colour.get_char(board_instance.get_winner())  # Should return win/loss
+        return Colour.get_char(board_instance.get_winner())
 
     def backpropagate(self, result, rootNode):
         """
