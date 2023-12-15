@@ -26,20 +26,7 @@ class MCTS_node:
 
         self.children = []                              # List of children from this node
         self.untried_moves = self.get_legal_moves()     # A list of moves not yet explored from this node
-
-
-
-    def result(self):
-        """
-            Returns:
-              The color of the winning player ('R' or 'B'), or None if the game hasn't ended.
-
-        """
-        board_string = self.state_to_string(self.state)
-        board_instance = Board.from_string(board_string, bnf=True)
-        game_result = board_instance.has_ended()
-
-        return game_result
+        
 
 
     def is_terminal_node(self):
@@ -60,11 +47,9 @@ class MCTS_node:
 
         for i in range(self.board_size):
             for j in range(self.board_size):
-                # print(f"Checking tile at ({i}, {j}): {self.state[i][j]}")
                 if self.state[i][j] == 0:  # 0 indicates an empty spot
                     legal_moves.append((i, j))
 
-        # print(f"Legal moves: {legal_moves}")
         return legal_moves
         
     def select_child(self):
@@ -74,14 +59,9 @@ class MCTS_node:
         best_score = float("-inf")
         best_child = None
 
-        # Iterate over the children and chose a child with the best USB score
         for child in self.children:
-            # C constant
             c = math.sqrt(2)
-            # Calculate the UCB score
-            ucb_score = (child.wins / child.visits) + c * math.sqrt(
-                math.log(self.visits) / child.visits
-            )
+            ucb_score = (child.wins / child.visits) + c * math.sqrt(math.log(self.visits) / child.visits)
             if ucb_score > best_score:
                 best_score = ucb_score
                 best_child = child
@@ -89,14 +69,9 @@ class MCTS_node:
         return best_child
 
     def make_move_on_copy(self, move, state, player):
-
-        # print("State before move is applied:\n", self.state)
         i, j = move         # Unpack the move coordinates
         new_state = state
-        # Apply the move
         new_state[i][j] = player       
-        # print("State after move is applied: \n", self.state)
-         
         return new_state
 
     def expand(self):
@@ -124,42 +99,6 @@ class MCTS_node:
         char_map = {0: '0', 'R': 'R', 'B': 'B'}  # Mapping of state to character
         return ','.join(''.join(char_map[item] for item in row) for row in current_state)
     
-    def simulate(self):
-        """
-        Simulate a random play-out from this node's state.
-        Returns: the result of the simulation (win/loss).
-        """
-        current_state = deepcopy(self.state)
-        current_player = deepcopy(self.player)
-
-        board_string = self.state_to_string(current_state)
-        board_instance = Board.from_string(board_string, bnf=True)
-
-        while not board_instance.has_ended():           # Continue if there's no winner yet
-            # print(board_instance.has_ended())
-
-            possible_moves = []
-
-            for i in range(self.board_size):
-                for j in range(self.board_size):
-                    if current_state[i][j] == 0:  # 0 indicates an empty spot
-                        possible_moves.append((i, j))
-
-            #possible_moves = self.get_legal_moves()
-            if not possible_moves:                          # No legal moves available
-                break
-            # print("Hello",possible_moves)
-            move = random.choice(possible_moves)
-            current_state = self.make_move_on_copy(move, current_state, current_player)
-            if current_player == "B":
-                current_player = "R"
-            else:
-                current_player = "B"
-            board_string = self.state_to_string(current_state)
-            board_instance = Board.from_string(board_string, bnf=True)
-        #print(board_instance.print_board(bnf=False))
-        #print(board_instance.get_winner())
-        return Colour.get_char(board_instance.get_winner())  # Should return win/loss
 
     def simulate2(self):
         """
