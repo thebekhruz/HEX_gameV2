@@ -15,11 +15,12 @@ class MCTS_node:
         self.player = player    # Player whos move is next 
         self.board_size = board_size
         self.children = []      # List of children from this node
-        # Use a dictionary for a sparse matrix representation of the board
+                                # Use a dictionary for a sparse matrix representation of the board
         self.board = { (i, j): state[i][j] for i in range(board_size) for j in range(board_size) if state[i][j] != 0 }
-
-        # Maintain a set of legal moves
+                                # Maintain a set of legal moves
         self.untried_moves = set((i, j) for i in range(self.board_size) for j in range(self.board_size) if state[i][j] == 0)
+                                # This will store 'R', 'B', or None
+        self._cached_end_state = None  
 
 
     def update_legal_moves_after_move(self, move):
@@ -27,24 +28,24 @@ class MCTS_node:
 
 
 
-    def result(self):
-        """
-            Returns:
-              The color of the winning player ('R' or 'B'), or None if the game hasn't ended.
-        """
-        board_string = self.state_to_string(self.state)
-        board_instance = Board.from_string(board_string, bnf=True)
-        return board_instance.has_ended()
-
-
     def is_terminal_node(self):
         """
+        Check if the node is a terminal state (i.e., the game has ended).
         Returns:
             bool: True if the node is a terminal state, False otherwise.
         """
+        # If the cached end state is not None, then the game has ended
+        if self._cached_end_state is not None:
+            return True
+
+        # Compute and cache the end state if it hasn't been done already
         board_string = self.state_to_string(self.state)
         board_instance = Board.from_string(board_string, bnf=True)
-        return board_instance.has_ended()
+        self._cached_end_state = board_instance.has_ended()
+
+        # Return True if the game has ended, False otherwise
+        return self._cached_end_state is not None
+
 
 
     def is_fully_expanded(self):
@@ -70,7 +71,7 @@ class MCTS_node:
         new_state[i][j] = player
 
         self.update_legal_moves_after_move(move)
- 
+        self._cached_end_state = None
         return new_state
          
     def change_colour(self, player):

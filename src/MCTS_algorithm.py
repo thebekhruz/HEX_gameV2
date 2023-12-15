@@ -1,8 +1,5 @@
 
 import time
-
-import time
-
 class MCTS_agent:
     def __init__(self,root):
         if root is None:
@@ -19,8 +16,6 @@ class MCTS_agent:
         while not current_node.is_terminal_node():
             if current_node.is_fully_expanded():
                 current_node = current_node.select_child()
-                if current_node is None:
-                    raise RuntimeError("Current node is None during selection")
             else:
                 break
         return current_node
