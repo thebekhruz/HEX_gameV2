@@ -27,27 +27,29 @@ class MCTS_node:
         self.children = []                              # List of children from this node
         self.untried_moves = self.get_legal_moves()     # A list of moves not yet explored from this node
 
-        self._cached_end_state = None  
+
+
+    def result(self):
+        """
+            Returns:
+              The color of the winning player ('R' or 'B'), or None if the game hasn't ended.
+
+        """
+        board_string = self.state_to_string(self.state)
+        board_instance = Board.from_string(board_string, bnf=True)
+        game_result = board_instance.has_ended()
+
+        return game_result
 
 
     def is_terminal_node(self):
         """
-        Check if the node is a terminal state (i.e., the game has ended).
         Returns:
             bool: True if the node is a terminal state, False otherwise.
         """
-        # If the cached end state is not None, then the game has ended
-        if self._cached_end_state is not None:
-            return True
-
-        # Compute and cache the end state if it hasn't been done already
         board_string = self.state_to_string(self.state)
         board_instance = Board.from_string(board_string, bnf=True)
-        self._cached_end_state = board_instance.has_ended()
-
-        # Return True if the game has ended, False otherwise
-        return self._cached_end_state is not None
-
+        return board_instance.has_ended()
 
 
     def is_fully_expanded(self):
@@ -94,17 +96,27 @@ class MCTS_node:
         # Apply the move
         new_state[i][j] = player       
         # print("State after move is applied: \n", self.state)
-        self._cached_end_state = None
+         
         return new_state
 
     def expand(self):
-        # Generate new child nodes from the current node, by performing a move. 
+
+        """
+            Function is used to generate new child nodes from the current node.
+            Each child node represents a possible future state of the game resulting from a different move.
+        """
         if not self.untried_moves:
             return self
-        move = self.untried_moves.pop()
-        new_state = self.make_move_on_copy(move, deepcopy(self.state), self.player)
+        move = self.untried_moves.pop()                 # Remove a move from untried moves
+        new_state = self.make_move_on_copy(move, deepcopy(self.state), self.player)        # Apply the move to get the new state
+
+        # Switch player for the next turn in Hex
         next_player = "B" if self.player == "R" else "R"
+
+        # Create a new MCTS node for the child with the new state and the next player
         child_node = MCTS_node(state=new_state, parent=self, move=move, player=next_player)
+
+        # Add the new child node to the children of the current node
         self.children.append(child_node)
         return child_node
 
@@ -112,22 +124,68 @@ class MCTS_node:
         char_map = {0: '0', 'R': 'R', 'B': 'B'}  # Mapping of state to character
         return ','.join(''.join(char_map[item] for item in row) for row in current_state)
     
-
-    def simulate2(self):
-
+    def simulate(self):
+        """
+        Simulate a random play-out from this node's state.
+        Returns: the result of the simulation (win/loss).
+        """
         current_state = deepcopy(self.state)
-        current_player = self.player
-
-        board_instance = Board.from_string(self.state_to_string(current_state), bnf=True)
-        moves = [(i, j) for i in range(self.board_size) for j in range(self.board_size) if current_state[i][j] == 0]
-        random.shuffle(moves)
-        for move in moves:
-            current_state[move[0]][move[1]] = current_player 
-            current_player = "R" if current_player == "B" else "B"
-
+        current_player = deepcopy(self.player)
 
         board_string = self.state_to_string(current_state)
         board_instance = Board.from_string(board_string, bnf=True)
+
+        while not board_instance.has_ended():           # Continue if there's no winner yet
+            # print(board_instance.has_ended())
+
+            possible_moves = []
+
+            for i in range(self.board_size):
+                for j in range(self.board_size):
+                    if current_state[i][j] == 0:  # 0 indicates an empty spot
+                        possible_moves.append((i, j))
+
+            #possible_moves = self.get_legal_moves()
+            if not possible_moves:                          # No legal moves available
+                break
+            # print("Hello",possible_moves)
+            move = random.choice(possible_moves)
+            current_state = self.make_move_on_copy(move, current_state, current_player)
+            if current_player == "B":
+                current_player = "R"
+            else:
+                current_player = "B"
+            board_string = self.state_to_string(current_state)
+            board_instance = Board.from_string(board_string, bnf=True)
+        #print(board_instance.print_board(bnf=False))
+        #print(board_instance.get_winner())
+        return Colour.get_char(board_instance.get_winner())  # Should return win/loss
+
+    def simulate2(self):
+        """
+        Simulate a random play-out from this node's state.
+        Returns: the result of the simulation (win/loss).
+        """
+        current_state = deepcopy(self.state)
+        current_player = deepcopy(self.player)
+
+        board_string = self.state_to_string(current_state)
+        board_instance = Board.from_string(board_string, bnf=True)
+        moves = []
+        for i in range(self.board_size):
+            for j in range(self.board_size):
+                if current_state[i][j] == 0:  # 0 indicates an empty spot
+                    moves.append((i,j))
+        random.shuffle(moves)
+        for move in moves:
+            current_state[move[0]][move[1]] = current_player 
+            if current_player == "B":
+                current_player = "R"
+            else:
+                current_player = "B"
+        board_string = self.state_to_string(current_state)
+        board_instance = Board.from_string(board_string, bnf=True)
+        #print(board_instance.print_board(bnf=False))
         board_instance.has_ended()
         return Colour.get_char(board_instance.get_winner())  # Should return win/loss
 
