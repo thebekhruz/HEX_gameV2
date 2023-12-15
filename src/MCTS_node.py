@@ -51,12 +51,16 @@ class MCTS_node:
         best_score = float("-inf")
         best_child = None
 
+        # Precomputed constants
+        c = math.sqrt(2)
+        parent_visits_log = math.log(self.visits) if self.visits > 0 else 0
+
         for child in self.children:
-            c = math.sqrt(2)
-            ucb_score = (child.wins / child.visits) + c * math.sqrt(math.log(self.visits) / child.visits)
-            if ucb_score > best_score:
-                best_score = ucb_score
-                best_child = child
+                if child.visits > 0:
+                    ucb_score = (child.wins / child.visits) + c * math.sqrt(parent_visits_log / child.visits)
+                    if ucb_score > best_score:
+                        best_score = ucb_score
+                        best_child = child
 
         return best_child
 
@@ -68,25 +72,21 @@ class MCTS_node:
         return new_state
 
     def expand(self):
+        """
+            Generate new child nodes from the current node, by performing a move. 
+        """
 
-        """
-            Function is used to generate new child nodes from the current node.
-            Each child node represents a possible future state of the game resulting from a different move.
-        """
         if not self.untried_moves:
             return self
-        move = self.untried_moves.pop()                 # Remove a move from untried moves
-        new_state = self.make_move_on_copy(move, deepcopy(self.state), self.player)        # Apply the move to get the new state
-
-        # Switch player for the next turn in Hex
-        next_player = "B" if self.player == "R" else "R"
-
-        # Create a new MCTS node for the child with the new state and the next player
+        
+        move = self.untried_moves.pop()
+        new_state = [row[:] for row in self.state]
+        new_state[move[0]][move[1]] = self.player
+        next_player = "R" if self.player == "B" else "B"
         child_node = MCTS_node(state=new_state, parent=self, move=move, player=next_player)
-
-        # Add the new child node to the children of the current node
         self.children.append(child_node)
         return child_node
+
 
     def state_to_string(self, current_state):
         char_map = {0: '0', 'R': 'R', 'B': 'B'}  # Mapping of state to character
@@ -98,26 +98,18 @@ class MCTS_node:
         Simulate a random play-out from this node's state.
         Returns: the result of the simulation (win/loss).
         """
-        current_state = deepcopy(self.state)
-        current_player = deepcopy(self.player)
 
-        board_string = self.state_to_string(current_state)
-        board_instance = Board.from_string(board_string, bnf=True)
-        moves = []
-        for i in range(self.board_size):
-            for j in range(self.board_size):
-                if current_state[i][j] == 0:  # 0 indicates an empty spot
-                    moves.append((i,j))
+        current_state = [row[:] for row in self.state]  # Efficient copying
+        current_player = self.player
+
+        moves = list(self.untried_moves)
         random.shuffle(moves)
+
         for move in moves:
-            current_state[move[0]][move[1]] = current_player 
-            if current_player == "B":
-                current_player = "R"
-            else:
-                current_player = "B"
-        board_string = self.state_to_string(current_state)
-        board_instance = Board.from_string(board_string, bnf=True)
-        #print(board_instance.print_board(bnf=False))
+            current_state[move[0]][move[1]] = current_player
+            current_player = "R" if current_player == "B" else "B"
+
+        board_instance = Board.from_string( self.state_to_string(current_state), bnf=True)
         board_instance.has_ended()
         return Colour.get_char(board_instance.get_winner())  # Should return win/loss
 
