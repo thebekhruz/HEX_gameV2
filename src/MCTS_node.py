@@ -20,7 +20,11 @@ class MCTS_node:
                                 # Maintain a set of legal moves
         self.untried_moves = set((i, j) for i in range(self.board_size) for j in range(self.board_size) if state[i][j] == 0)
                                 # This will store 'R', 'B', or None
-        self._cached_end_state = None  
+        self._cached_end_state = None 
+
+        self.rave_wins = {}     # RAVE wins for each move
+        self.rave_visits = {}   # RAVE visits for each move
+        self.simulated_moves = []
 
 
     def update_legal_moves_after_move(self, move):
@@ -37,16 +41,12 @@ class MCTS_node:
         # If the cached end state is not None, then the game has ended
         if self._cached_end_state is not None:
             return True
-
         # Compute and cache the end state if it hasn't been done already
         board_string = self.state_to_string(self.state)
         board_instance = Board.from_string(board_string, bnf=True)
         self._cached_end_state = board_instance.has_ended()
-
         # Return True if the game has ended, False otherwise
         return self._cached_end_state is not None
-
-
 
     def is_fully_expanded(self):
         return len(self.untried_moves) == 0
@@ -55,15 +55,17 @@ class MCTS_node:
         best_score = float("-inf")
         best_child = None
         c = math.sqrt(2)
-
-        #  chose a child with the best USB score
         for child in self.children:
             ucb_score = (child.wins / child.visits) + c * math.sqrt(math.log(self.visits) / child.visits)
-            if ucb_score > best_score:
-                best_score = ucb_score
+            rave_score = 0
+            if child.move in self.rave_visits:
+                rave_score = self.rave_wins[child.move] / self.rave_visits[child.move]
+            beta = self.rave_visits.get(child.move, 0) / (self.visits + self.rave_visits.get(child.move, 0) + 1e-5)
+            combined_score = beta * rave_score + (1 - beta) * ucb_score
+            if combined_score > best_score:
+                best_score = combined_score
                 best_child = child
         return best_child
-
 
     def make_move_on_copy(self, move, state, player):
         new_state = state
@@ -83,7 +85,6 @@ class MCTS_node:
             Function is used to generate new child nodes from the current node.
             Each child node represents a possible future state of the game resulting from a different move.
         """
-
         if not self.untried_moves:
             return self
         move = self.untried_moves.pop()                 
@@ -102,34 +103,44 @@ class MCTS_node:
     def simulate2(self):
         """
         Simulate a random play-out from this node's state.
-        Returns: the result of the simulation (win/loss).
+        Returns: the result of the simulation (win/loss) and the list of moves made.
         """
         current_state = deepcopy(self.state)
-        current_player = deepcopy(self.player)
-        board_instance = Board.from_string(self.state_to_string(current_state), bnf=True)
-        moves = []
-        for i in range(self.board_size):
-            for j in range(self.board_size):
-                if current_state[i][j] == 0:  # 0 indicates an empty spot
-                    moves.append((i,j))
+        current_player = self.player
+        simulated_moves = []  # Local list for tracking moves
+        moves = [(i, j) for i in range(self.board_size) for j in range(self.board_size) if current_state[i][j] == 0]
         random.shuffle(moves)
 
         for move in moves:
-            current_state[move[0]][move[1]] = current_player 
+            current_state[move[0]][move[1]] = current_player
+            simulated_moves.append(move)  # Store the move
             current_player = "R" if current_player == "B" else "B"
 
         board_string = self.state_to_string(current_state)
         board_instance = Board.from_string(board_string, bnf=True)
-        #print(board_instance.print_board(bnf=False))
         board_instance.has_ended()
-        return Colour.get_char(board_instance.get_winner())  # Should return win/loss
+        return Colour.get_char(board_instance.get_winner()), simulated_moves
 
-    def backpropagate(self, result, rootNode):
+    def backpropagate(self, result, rootNode, simulated_moves):
         """
         Backpropagate the simulation result up the tree.
         """
         self.visits += 1
         if rootNode.player == result:
             self.wins += 1
-        if self.parent:
-            self.parent.backpropagate(result, rootNode)
+
+        # Update RAVE statistics
+        current_node = self
+        while current_node is not None:
+            for move in simulated_moves:
+                if move not in current_node.rave_wins:
+                    current_node.rave_wins[move] = 0
+                    current_node.rave_visits[move] = 0
+                current_node.rave_visits[move] += 1
+                if result == rootNode.player:
+                    current_node.rave_wins[move] += 1
+            current_node = current_node.parent
+
+
+
+        # Update RAVE statistics

@@ -36,8 +36,8 @@ class MCTS_agent:
         while time.time() - start_time < simulation_time:
             node = self.select_and_expand()
             if node:
-                result = node.simulate2()
-                node.backpropagate(result, self.root)
+                result, simulated_moves = node.simulate2()
+                node.backpropagate(result, self.root, simulated_moves)
             
             searches+=1
 
